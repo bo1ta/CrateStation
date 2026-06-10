@@ -6,7 +6,7 @@ defmodule CrateStation.Accounts do
   import Ecto.Query, warn: false
   alias CrateStation.Repo
 
-  alias CrateStation.Accounts.{User, UserToken, UserNotifier}
+  alias CrateStation.Accounts.{User, UserToken, UserNotifier, UserSession, JWT}
 
   ## Database getters
 
@@ -74,11 +74,58 @@ defmodule CrateStation.Accounts do
       {:error, %Ecto.Changeset{}}
 
   """
+  @spec register_user(map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def register_user(attrs) do
     %User{}
     |> User.email_changeset(attrs)
+    |> Ecto.Changeset.put_change(:public_id, Ecto.UUID.generate())
     |> Repo.insert()
   end
+
+  @spec register_user_with_password(map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def register_user_with_password(attrs) do
+    %User{}
+    |> User.register_changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @spec login_user(map()) :: {:ok, User.t()} | {:error, :invalid_credentials}
+  def login_user(%{"email" => email, "password" => password})
+      when is_binary(email) and is_binary(password) do
+    case get_user_by_email_and_password(email, password) do
+      nil -> {:error, :invalid_credentials}
+      user -> {:ok, user}
+    end
+  end
+
+  @spec create_api_session(User.t()) :: {:ok, UserSession.t()} | {:error, Ecto.Changeset.t()}
+  def create_api_session(user) do
+    {refresh_token, user_token} = UserToken.build_refresh_token(user)
+
+    with {:ok, _token} <- Repo.insert(user_token) do
+      {:ok, UserSession.new(user, refresh_token)}
+    end
+  end
+
+  @spec refresh_api_session(String.t()) ::
+          {:ok, UserSession.t()} | {:error, :invalid_refresh_token}
+  def refresh_api_session(refresh_token) when is_binary(refresh_token) do
+    with {:ok, query} <- UserToken.verify_refresh_token_query(refresh_token),
+         {user, existing_token} <- Repo.one(query) do
+      Repo.transact(fn ->
+        Repo.delete!(existing_token)
+
+        {new_refresh_token, new_user_token} = UserToken.build_refresh_token(user)
+        Repo.insert!(new_user_token)
+
+        {:ok, UserSession.new(user, new_refresh_token)}
+      end)
+    else
+      _ -> {:error, :invalid_refresh_token}
+    end
+  end
+
+  def refresh_api_session(_), do: {:error, :invalid_refresh_token}
 
   ## Settings
 
@@ -199,6 +246,22 @@ defmodule CrateStation.Accounts do
       _ -> nil
     end
   end
+
+  @doc """
+  Authenticates an API user from a JWT access token.
+  """
+  @spec get_user_by_access_token(String.t()) :: {:ok, User.t()} | {:error, :invalid_access_token}
+  def get_user_by_access_token(access_token) when is_binary(access_token) do
+    with {:ok, claims} <- JWT.verify_access_token(access_token),
+         {user_id, ""} <- Integer.parse(claims["sub"]),
+         %User{} = user <- Repo.get(User, user_id) do
+      {:ok, user}
+    else
+      _ -> {:error, :invalid_access_token}
+    end
+  end
+
+  def get_user_by_access_token(_), do: {:error, :invalid_access_token}
 
   @doc """
   Logs the user in by magic link.

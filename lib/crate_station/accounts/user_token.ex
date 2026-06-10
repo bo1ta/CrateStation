@@ -1,7 +1,10 @@
 defmodule CrateStation.Accounts.UserToken do
   use Ecto.Schema
   import Ecto.Query
-  alias CrateStation.Accounts.UserToken
+
+  alias CrateStation.Repo
+
+  alias CrateStation.Accounts.User
 
   @hash_algorithm :sha256
   @rand_size 32
@@ -11,6 +14,16 @@ defmodule CrateStation.Accounts.UserToken do
   @magic_link_validity_in_minutes 15
   @change_email_validity_in_days 7
   @session_validity_in_days 14
+  @refresh_token_validity_in_days 30
+
+  @type t :: %__MODULE__{
+          token: binary(),
+          context: String.t(),
+          sent_to: String.t() | nil,
+          authenticated_at: DateTime.t(),
+          user_id: integer(),
+          user: User.t() | Ecto.Association.NotLoaded.t()
+        }
 
   schema "users_tokens" do
     field :token, :binary
@@ -44,7 +57,7 @@ defmodule CrateStation.Accounts.UserToken do
   def build_session_token(user) do
     token = :crypto.strong_rand_bytes(@rand_size)
     dt = user.authenticated_at || DateTime.utc_now(:second)
-    {token, %UserToken{token: token, context: "session", user_id: user.id, authenticated_at: dt}}
+    {token, %__MODULE__{token: token, context: "session", user_id: user.id, authenticated_at: dt}}
   end
 
   @doc """
@@ -64,6 +77,57 @@ defmodule CrateStation.Accounts.UserToken do
 
     {:ok, query}
   end
+
+  @spec build_refresh_token(User.t()) :: {binary(), t()}
+  def build_refresh_token(user) do
+    token = :crypto.strong_rand_bytes(@rand_size)
+    hashed_token = :crypto.hash(@hash_algorithm, token)
+    encoded_token = Base.url_encode64(token, padding: false)
+    dt = user.authenticated_at || DateTime.utc_now(:second)
+
+    {encoded_token,
+     %__MODULE__{
+       token: hashed_token,
+       context: "refresh",
+       user_id: user.id,
+       authenticated_at: dt
+     }}
+  end
+
+  @doc """
+  Checks if the refresh token is valid and returns its lookup query.
+  """
+  @spec verify_refresh_token_query(String.t()) :: {:ok, Ecto.Query.t()}
+  def verify_refresh_token_query(token) do
+    with {:ok, decoded_token} <- Base.url_decode64(token, padding: false) do
+      hashed_token = :crypto.hash(@hash_algorithm, decoded_token)
+
+      query =
+        from token in by_token_and_context_query(hashed_token, "refresh"),
+          join: user in assoc(token, :user),
+          where: token.inserted_at > ago(@refresh_token_validity_in_days, "day"),
+          select: {%{user | authenticated_at: token.authenticated_at}, token}
+
+      {:ok, query}
+    end
+  end
+
+  @doc """
+  Revokes a refresh token used by API clients.
+  """
+  @spec revoke_refresh_token(binary()) ::
+          :ok | {:error, Ecto.Changeset.t() | :invalid_refresh_token}
+  def revoke_refresh_token(refresh_token) when is_binary(refresh_token) do
+    with {:ok, query} <- verify_refresh_token_query(refresh_token),
+         {_user, user_token} <- Repo.one(query),
+         {:ok, _} <- Repo.delete(user_token) do
+      :ok
+    else
+      _ -> {:error, :invalid_refresh_token}
+    end
+  end
+
+  def revoke_refresh_token(_), do: {:error, :invalid_refresh_token}
 
   @doc """
   Builds a token and its hash to be delivered to the user's email.
@@ -87,7 +151,7 @@ defmodule CrateStation.Accounts.UserToken do
     hashed_token = :crypto.hash(@hash_algorithm, token)
 
     {Base.url_encode64(token, padding: false),
-     %UserToken{
+     %__MODULE__{
        token: hashed_token,
        context: context,
        sent_to: sent_to,
@@ -151,6 +215,6 @@ defmodule CrateStation.Accounts.UserToken do
   end
 
   defp by_token_and_context_query(token, context) do
-    from UserToken, where: [token: ^token, context: ^context]
+    from __MODULE__, where: [token: ^token, context: ^context]
   end
 end

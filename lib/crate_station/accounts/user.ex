@@ -4,6 +4,7 @@ defmodule CrateStation.Accounts.User do
 
   @type t :: %__MODULE__{
           id: integer(),
+          public_id: Ecto.UUID.t(),
           email: String.t(),
           hashed_password: String.t(),
           password: String.t(),
@@ -15,6 +16,7 @@ defmodule CrateStation.Accounts.User do
 
   schema "users" do
     field :email, :string
+    field :public_id, Ecto.UUID
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :confirmed_at, :utc_datetime
@@ -38,6 +40,13 @@ defmodule CrateStation.Accounts.User do
     user
     |> cast(attrs, [:email])
     |> validate_email(opts)
+  end
+
+  def register_changeset(user, attrs) do
+    user
+    |> email_changeset(attrs)
+    |> password_changeset(attrs)
+    |> put_change(:public_id, Ecto.UUID.generate())
   end
 
   defp validate_email(changeset, opts) do

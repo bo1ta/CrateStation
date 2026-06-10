@@ -17,16 +17,19 @@ defmodule CrateStationWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :api_auth do
+    plug CrateStationWeb.APIAuth, :fetch_current_user
+  end
+
+  pipeline :api_authenticated do
+    plug CrateStationWeb.APIAuth, :require_authenticated_user
+  end
+
   scope "/", CrateStationWeb do
     pipe_through :browser
 
     get "/", PageController, :home
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", CrateStationWeb do
-  #   pipe_through :api
-  # end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:crate_station, :dev_routes) do
@@ -71,5 +74,22 @@ defmodule CrateStationWeb.Router do
 
     post "/users/log-in", UserSessionController, :create
     delete "/users/log-out", UserSessionController, :delete
+  end
+
+  ## API Routes
+
+  scope "/api", CrateStationWeb do
+    pipe_through :api
+
+    post "/auth/register", AuthController, :register
+    post "/auth/login", AuthController, :login
+    post "/auth/refresh", AuthController, :refresh
+    post "/auth/logout", AuthController, :logout
+  end
+
+  scope "/api", CrateStationWeb do
+    pipe_through [:api, :api_authenticated]
+
+    get "/auth/me", AuthController, :me
   end
 end
