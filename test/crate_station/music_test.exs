@@ -109,7 +109,7 @@ defmodule CrateStation.MusicTest do
     import CrateStation.AccountsFixtures, only: [user_scope_fixture: 0]
     import CrateStation.MusicFixtures
 
-    @invalid_attrs %{title: nil, year: nil, genre: nil, duration: nil, client_id: nil}
+    @invalid_attrs %{title: nil, year: nil, genre: nil, client_id: nil}
 
     test "list_albums/1 returns all scoped albums" do
       scope = user_scope_fixture()
@@ -133,7 +133,6 @@ defmodule CrateStation.MusicTest do
         title: "some title",
         year: 42,
         genre: "some genre",
-        duration: 42,
         client_id: "7488a646-e31f-11e4-aace-600308960663"
       }
 
@@ -143,7 +142,6 @@ defmodule CrateStation.MusicTest do
       assert album.title == "some title"
       assert album.year == 42
       assert album.genre == "some genre"
-      assert album.duration == 42
       assert album.client_id == "7488a646-e31f-11e4-aace-600308960663"
       assert album.user_id == scope.user.id
     end
@@ -160,15 +158,13 @@ defmodule CrateStation.MusicTest do
       update_attrs = %{
         title: "some updated title",
         year: 43,
-        genre: "some updated genre",
-        duration: 43
+        genre: "some updated genre"
       }
 
       assert {:ok, %Album{} = album} = Music.update_album(scope, album, update_attrs)
       assert album.title == "some updated title"
       assert album.year == 43
       assert album.genre == "some updated genre"
-      assert album.duration == 43
     end
 
     test "update_album/3 with invalid scope raises" do
@@ -259,7 +255,7 @@ defmodule CrateStation.MusicTest do
         duration: 42,
         track_number: 42,
         disc_number: 42,
-        genre: 42,
+        genre: "electro",
         bpm: 120.5,
         song_key: "some song_key",
         play_count: 42,
@@ -276,7 +272,7 @@ defmodule CrateStation.MusicTest do
       assert track.duration == 42
       assert track.track_number == 42
       assert track.disc_number == 42
-      assert track.genre == 42
+      assert track.genre == "electro"
       assert track.bpm == 120.5
       assert track.song_key == "some song_key"
       assert track.play_count == 42
@@ -303,7 +299,7 @@ defmodule CrateStation.MusicTest do
         duration: 43,
         track_number: 43,
         disc_number: 43,
-        genre: 43,
+        genre: "electro",
         bpm: 456.7,
         song_key: "some updated song_key",
         play_count: 43,
@@ -319,7 +315,7 @@ defmodule CrateStation.MusicTest do
       assert track.duration == 43
       assert track.track_number == 43
       assert track.disc_number == 43
-      assert track.genre == 43
+      assert track.genre == "electro"
       assert track.bpm == 456.7
       assert track.song_key == "some updated song_key"
       assert track.play_count == 43

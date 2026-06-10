@@ -26,7 +26,6 @@ defmodule CrateStation.MusicFixtures do
     attrs =
       Enum.into(attrs, %{
         client_id: "7488a646-e31f-11e4-aace-600308960663",
-        duration: 42,
         genre: "some genre",
         title: "some title",
         year: 42
@@ -49,7 +48,7 @@ defmodule CrateStation.MusicFixtures do
         client_id: "7488a646-e31f-11e4-aace-600308960664",
         disc_number: 42,
         duration: 42,
-        genre: 42,
+        genre: "electro",
         imported_at: ~U[2026-06-09 01:28:00Z],
         is_favorite: true,
         last_played_at: ~U[2026-06-09 01:28:00Z],

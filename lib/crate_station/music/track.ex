@@ -34,7 +34,7 @@ defmodule CrateStation.Music.Track do
     field :track_number, :integer
     field :disc_number, :integer
     field :year, :integer
-    field :genre, :integer
+    field :genre, :string
     field :bpm, :float
     field :song_key, :string
     field :play_count, :integer, default: 0

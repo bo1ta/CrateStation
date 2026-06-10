@@ -8,7 +8,6 @@ defmodule CrateStation.Music.Album do
           title: String.t(),
           year: integer() | nil,
           genre: String.t() | nil,
-          duration: integer() | nil,
           user_id: integer(),
           user: CrateStation.Accounts.User.t() | Ecto.Association.NotLoaded.t(),
           artist_id: integer() | nil,
@@ -21,7 +20,6 @@ defmodule CrateStation.Music.Album do
     field :title, :string
     field :year, :integer
     field :genre, :string
-    field :duration, :integer
     field :client_id, Ecto.UUID
 
     belongs_to :artist, CrateStation.Music.Artist
@@ -35,7 +33,7 @@ defmodule CrateStation.Music.Album do
   @doc false
   def changeset(album, attrs, user_scope) do
     album
-    |> cast(attrs, [:title, :year, :genre, :duration, :client_id, :artist_id])
+    |> cast(attrs, [:title, :year, :genre, :client_id, :artist_id])
     |> validate_required([:title, :client_id])
     |> put_change(:user_id, user_scope.user.id)
   end
