@@ -1,0 +1,145 @@
+defmodule CrateStation.PlaybackTest do
+  use CrateStation.DataCase
+
+  alias CrateStation.Playback
+
+  describe "playback_events" do
+    alias CrateStation.Playback.PlaybackEvent
+
+    import CrateStation.AccountsFixtures, only: [user_scope_fixture: 0]
+    import CrateStation.MusicFixtures
+    import CrateStation.PlaybackFixtures
+
+    @invalid_attrs %{
+      event_type: nil,
+      played_at: nil,
+      position_seconds: nil,
+      duration_seconds: nil,
+      context_type: nil,
+      context_client_id: nil,
+      track_id: nil
+    }
+
+    test "list_playback_events/1 returns all scoped playback_events" do
+      scope = user_scope_fixture()
+      other_scope = user_scope_fixture()
+      playback_event = playback_event_fixture(scope)
+      other_playback_event = playback_event_fixture(other_scope)
+      assert Playback.list_playback_events(scope) == [playback_event]
+      assert Playback.list_playback_events(other_scope) == [other_playback_event]
+    end
+
+    test "get_playback_event!/2 returns the playback_event with given id" do
+      scope = user_scope_fixture()
+      playback_event = playback_event_fixture(scope)
+      other_scope = user_scope_fixture()
+      assert Playback.get_playback_event!(scope, playback_event.id) == playback_event
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Playback.get_playback_event!(other_scope, playback_event.id)
+      end
+    end
+
+    test "create_playback_event/2 with valid data creates a playback_event" do
+      scope = user_scope_fixture()
+      track = track_fixture(scope)
+
+      valid_attrs = %{
+        event_type: :started,
+        played_at: ~U[2026-06-09 18:27:00Z],
+        position_seconds: 42,
+        duration_seconds: 42,
+        context_type: :library,
+        context_client_id: "7488a646-e31f-11e4-aace-600308960662",
+        track_id: track.id
+      }
+
+      assert {:ok, %PlaybackEvent{} = playback_event} =
+               Playback.create_playback_event(scope, valid_attrs)
+
+      assert playback_event.event_type == :started
+      assert playback_event.played_at == ~U[2026-06-09 18:27:00Z]
+      assert playback_event.position_seconds == 42
+      assert playback_event.duration_seconds == 42
+      assert playback_event.context_type == :library
+      assert playback_event.context_client_id == "7488a646-e31f-11e4-aace-600308960662"
+      assert playback_event.track_id == track.id
+      assert playback_event.user_id == scope.user.id
+    end
+
+    test "create_playback_event/2 with invalid data returns error changeset" do
+      scope = user_scope_fixture()
+      assert {:error, %Ecto.Changeset{}} = Playback.create_playback_event(scope, @invalid_attrs)
+    end
+
+    test "update_playback_event/3 with valid data updates the playback_event" do
+      scope = user_scope_fixture()
+      playback_event = playback_event_fixture(scope)
+
+      update_attrs = %{
+        event_type: :scrobbled,
+        played_at: ~U[2026-06-10 18:27:00Z],
+        position_seconds: 43,
+        duration_seconds: 43,
+        context_type: :playlist,
+        context_client_id: "7488a646-e31f-11e4-aace-600308960668"
+      }
+
+      assert {:ok, %PlaybackEvent{} = playback_event} =
+               Playback.update_playback_event(scope, playback_event, update_attrs)
+
+      assert playback_event.event_type == :scrobbled
+      assert playback_event.played_at == ~U[2026-06-10 18:27:00Z]
+      assert playback_event.position_seconds == 43
+      assert playback_event.duration_seconds == 43
+      assert playback_event.context_type == :playlist
+      assert playback_event.context_client_id == "7488a646-e31f-11e4-aace-600308960668"
+    end
+
+    test "update_playback_event/3 with invalid scope raises" do
+      scope = user_scope_fixture()
+      other_scope = user_scope_fixture()
+      playback_event = playback_event_fixture(scope)
+
+      assert_raise MatchError, fn ->
+        Playback.update_playback_event(other_scope, playback_event, %{})
+      end
+    end
+
+    test "update_playback_event/3 with invalid data returns error changeset" do
+      scope = user_scope_fixture()
+      playback_event = playback_event_fixture(scope)
+
+      assert {:error, %Ecto.Changeset{}} =
+               Playback.update_playback_event(scope, playback_event, @invalid_attrs)
+
+      assert playback_event == Playback.get_playback_event!(scope, playback_event.id)
+    end
+
+    test "delete_playback_event/2 deletes the playback_event" do
+      scope = user_scope_fixture()
+      playback_event = playback_event_fixture(scope)
+      assert {:ok, %PlaybackEvent{}} = Playback.delete_playback_event(scope, playback_event)
+
+      assert_raise Ecto.NoResultsError, fn ->
+        Playback.get_playback_event!(scope, playback_event.id)
+      end
+    end
+
+    test "delete_playback_event/2 with invalid scope raises" do
+      scope = user_scope_fixture()
+      other_scope = user_scope_fixture()
+      playback_event = playback_event_fixture(scope)
+
+      assert_raise MatchError, fn ->
+        Playback.delete_playback_event(other_scope, playback_event)
+      end
+    end
+
+    test "change_playback_event/2 returns a playback_event changeset" do
+      scope = user_scope_fixture()
+      playback_event = playback_event_fixture(scope)
+      assert %Ecto.Changeset{} = Playback.change_playback_event(scope, playback_event)
+    end
+  end
+end
