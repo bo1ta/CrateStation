@@ -2,8 +2,6 @@ defmodule CrateStation.Music.Artist do
   use Ecto.Schema
   import Ecto.Changeset
 
-  import CrateStation.Helpers.Schema
-
   @type t :: %__MODULE__{
           id: integer(),
           name: String.t(),
