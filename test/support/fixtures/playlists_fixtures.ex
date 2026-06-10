@@ -10,7 +10,7 @@ defmodule CrateStation.PlaylistsFixtures do
   def playlist_fixture(scope, attrs \\ %{}) do
     attrs =
       Enum.into(attrs, %{
-        client_id: "7488a646-e31f-11e4-aace-600308960662",
+        client_id: Ecto.UUID.generate(),
         kind: :regular,
         name: "some name"
       })

@@ -10,7 +10,7 @@ defmodule CrateStation.MusicFixtures do
   def artist_fixture(scope, attrs \\ %{}) do
     attrs =
       Enum.into(attrs, %{
-        client_id: "7488a646-e31f-11e4-aace-600308960662",
+        client_id: Ecto.UUID.generate(),
         name: "some name",
         slug: "some slug"
       })
@@ -25,7 +25,7 @@ defmodule CrateStation.MusicFixtures do
   def album_fixture(scope, attrs \\ %{}) do
     attrs =
       Enum.into(attrs, %{
-        client_id: "7488a646-e31f-11e4-aace-600308960663",
+        client_id: Ecto.UUID.generate(),
         genre: "some genre",
         title: "some title",
         year: 42
@@ -45,7 +45,7 @@ defmodule CrateStation.MusicFixtures do
       Enum.into(attrs, %{
         bpm: 120.5,
         artist_id: artist.id,
-        client_id: "7488a646-e31f-11e4-aace-600308960664",
+        client_id: Ecto.UUID.generate(),
         disc_number: 42,
         duration: 42,
         genre: "electro",

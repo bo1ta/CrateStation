@@ -91,5 +91,9 @@ defmodule CrateStationWeb.Router do
     pipe_through [:api, :api_authenticated]
 
     get "/auth/me", AuthController, :me
+
+    post "/sync/artists/upsert", IngestController, :sync_artists
+    post "/sync/albums/upsert", IngestController, :sync_albums
+    post "/sync/tracks/upsert", IngestController, :sync_tracks
   end
 end
