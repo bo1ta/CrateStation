@@ -95,5 +95,7 @@ defmodule CrateStationWeb.Router do
     post "/sync/artists/upsert", IngestController, :sync_artists
     post "/sync/albums/upsert", IngestController, :sync_albums
     post "/sync/tracks/upsert", IngestController, :sync_tracks
+
+    post "/playback/event", PlaybackController, :playback_event
   end
 end

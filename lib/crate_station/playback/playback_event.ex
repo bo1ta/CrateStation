@@ -49,8 +49,7 @@ defmodule CrateStation.Playback.PlaybackEvent do
       :position_seconds,
       :duration_seconds,
       :context_type,
-      :track_id,
-      :context_client_id
+      :track_id
     ])
     |> put_change(:user_id, user_scope.user.id)
   end

@@ -72,8 +72,8 @@ defmodule CrateStation.Ingest do
           play_count: attr["play_count"],
           rating: attr["rating"],
           is_favorite: attr["is_favorite"],
-          last_played_at: attr["last_played_at"],
-          imported_at: attr["imported_at"],
+          last_played_at: parse_utc_datetime(attr["last_played_at"]),
+          imported_at: parse_utc_datetime(attr["imported_at"]),
           album_id: Map.get(album_id_by_client_id, attr["album_client_id"]),
           artist_id: Map.get(artist_id_by_client_id, attr["artist_client_id"]),
           user_id: scope.user.id,
@@ -142,5 +142,15 @@ defmodule CrateStation.Ingest do
     |> Enum.map(& &1[key])
     |> Enum.reject(&is_nil/1)
     |> Enum.uniq()
+  end
+
+  defp parse_utc_datetime(nil), do: nil
+  defp parse_utc_datetime(%DateTime{} = datetime), do: DateTime.truncate(datetime, :second)
+
+  defp parse_utc_datetime(datetime) when is_binary(datetime) do
+    case DateTime.from_iso8601(datetime) do
+      {:ok, datetime, _offset} -> DateTime.truncate(datetime, :second)
+      {:error, _reason} -> datetime
+    end
   end
 end

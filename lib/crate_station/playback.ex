@@ -4,6 +4,8 @@ defmodule CrateStation.Playback do
   """
 
   import Ecto.Query, warn: false
+  alias CrateStation.Music
+  alias CrateStation.Music.Track
   alias CrateStation.Repo
 
   alias CrateStation.Playback.PlaybackEvent
@@ -81,6 +83,22 @@ defmodule CrateStation.Playback do
            |> Repo.insert() do
       broadcast_playback_event(scope, {:created, playback_event})
       {:ok, playback_event}
+    end
+  end
+
+  def upsert_event(%Scope{} = scope, attrs) do
+    case Music.track_by_client_id(scope, attrs["track_client_id"]) do
+      %Track{id: track_id} ->
+        # TODO: Handle context_client_id once Playlists is in place
+        attrs =
+          attrs
+          |> Map.delete("track_client_id")
+          |> Map.put("track_id", track_id)
+
+        create_playback_event(scope, attrs)
+
+      nil ->
+        {:error, :unprocessable_entity}
     end
   end
 

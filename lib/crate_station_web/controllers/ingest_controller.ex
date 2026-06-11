@@ -16,7 +16,7 @@ defmodule CrateStationWeb.IngestController do
   end
 
   def sync_tracks(conn, %{"tracks" => tracks}) do
-    {count, _} = Ingest.upsert_albums(conn.assigns.current_scope, tracks)
+    {count, _} = Ingest.upsert_tracks(conn.assigns.current_scope, tracks)
     json(conn, %{count: count})
   end
 end

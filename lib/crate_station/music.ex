@@ -62,6 +62,10 @@ defmodule CrateStation.Music do
     Repo.get_by!(Artist, id: id, user_id: scope.user.id)
   end
 
+  def artist_by_client_id(%Scope{} = scope, client_id) do
+    Repo.get_by(Artist, client_id: client_id, user_id: scope.user.id)
+  end
+
   @doc """
   Creates a artist.
 
@@ -339,6 +343,12 @@ defmodule CrateStation.Music do
   def get_track!(%Scope{} = scope, id) do
     Repo.get_by!(Track, id: id, user_id: scope.user.id)
   end
+
+  def track_by_client_id(%Scope{} = scope, client_id) when is_binary(client_id) do
+    Repo.get_by(Track, client_id: client_id, user_id: scope.user.id)
+  end
+
+  def track_by_client_id(_scope, _), do: nil
 
   @doc """
   Creates a track.
