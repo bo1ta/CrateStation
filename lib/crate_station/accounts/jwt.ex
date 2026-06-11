@@ -1,7 +1,7 @@
 defmodule CrateStation.Accounts.JWT do
   @moduledoc false
 
-  @access_token_ttl 15 * 60
+  @access_token_ttl 365 * 24 * 60 * 60
   @issuer "crate_station"
 
   def generate_access_token(user, opts \\ []) do

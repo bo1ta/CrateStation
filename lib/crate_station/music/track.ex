@@ -5,6 +5,7 @@ defmodule CrateStation.Music.Track do
   @type t :: %__MODULE__{
           id: integer(),
           client_id: Ecto.UUID.t(),
+          title: String.t(),
           duration: integer() | nil,
           track_number: integer() | nil,
           disc_number: integer() | nil,
@@ -15,8 +16,8 @@ defmodule CrateStation.Music.Track do
           play_count: integer(),
           rating: integer(),
           is_favorite: boolean(),
-          last_played_at: DateTime.t(),
-          imported_at: DateTime.t(),
+          last_played_at: DateTime.t() | nil,
+          imported_at: DateTime.t() | nil,
           artist_id: integer(),
           artist: CrateStation.Music.Artist.t() | Ecto.Association.NotLoaded.t(),
           album_id: integer() | nil,
