@@ -68,7 +68,7 @@ defmodule CrateStation.Ingest do
           disc_number: attr["disc_number"],
           year: attr["year"],
           genre: attr["genre"],
-          bpm: attr["bpm"],
+          bpm: :erlang.float(attr["bpm"]),
           song_key: attr["song_key"],
           play_count: attr["play_count"],
           rating: attr["rating"],
