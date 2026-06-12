@@ -18,7 +18,7 @@ defmodule CrateStation.Playlists.Playlist do
   schema "playlists" do
     field :name, :string
     field :client_id, Ecto.UUID
-    field :kind, Ecto.Enum, values: [:regular, :smart]
+    field :kind, Ecto.Enum, values: [:regular, :smart], default: :regular
 
     belongs_to :user, CrateStation.Accounts.User
 

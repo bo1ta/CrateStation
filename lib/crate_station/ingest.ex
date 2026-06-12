@@ -4,6 +4,7 @@ defmodule CrateStation.Ingest do
 
   alias CrateStation.Accounts.Scope
   alias CrateStation.Music.{Album, Track, Artist}
+  alias CrateStation.Playlists.Playlist
 
   def upsert_artists(%Scope{} = scope, attrs) when is_list(attrs) do
     now = DateTime.utc_now(:second)
@@ -104,6 +105,27 @@ defmodule CrateStation.Ingest do
            :artist_id,
            :updated_at
          ]}
+    )
+  end
+
+  def upsert_playlists(%Scope{} = scope, attrs) when is_list(attrs) do
+    now = DateTime.utc_now(:second)
+
+    entries =
+      Enum.map(attrs, fn attr ->
+        %{
+          client_id: attr["client_id"],
+          name: attr["name"],
+          kind: String.to_atom(attr["kind"]),
+          user_id: scope.user.id,
+          inserted_at: now,
+          updated_at: now
+        }
+      end)
+
+    Repo.insert_all(Playlist, entries,
+      conflict_target: [:user_id, :client_id],
+      on_conflict: {:replace, [:name, :kind, :updated_at]}
     )
   end
 
