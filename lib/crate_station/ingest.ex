@@ -4,7 +4,7 @@ defmodule CrateStation.Ingest do
 
   alias CrateStation.Accounts.Scope
   alias CrateStation.Music.{Album, Track, Artist}
-  alias CrateStation.Playlists.Playlist
+  alias CrateStation.Playlists.{Playlist, PlaylistTrack}
 
   def upsert_artists(%Scope{} = scope, attrs) when is_list(attrs) do
     now = DateTime.utc_now(:second)
@@ -12,7 +12,7 @@ defmodule CrateStation.Ingest do
     entries =
       Enum.map(attrs, fn attr ->
         %{
-          client_id: attr["client_id"],
+          client_id: client_id(attr, "client_id"),
           name: attr["name"],
           slug: attr["slug"],
           user_id: scope.user.id,
@@ -35,11 +35,11 @@ defmodule CrateStation.Ingest do
     entries =
       Enum.map(attrs, fn attr ->
         %{
-          client_id: attr["client_id"],
+          client_id: client_id(attr, "client_id"),
           title: attr["title"],
           year: Map.get(attr, "year"),
           genre: Map.get(attr, "genre"),
-          artist_id: Map.get(artist_id_by_client_id, attr["artist_client_id"]),
+          artist_id: Map.get(artist_id_by_client_id, client_id(attr, "artist_client_id")),
           user_id: scope.user.id,
           inserted_at: now,
           updated_at: now
@@ -61,7 +61,7 @@ defmodule CrateStation.Ingest do
     entries =
       Enum.map(attrs, fn attr ->
         %{
-          client_id: attr["client_id"],
+          client_id: client_id(attr, "client_id"),
           title: attr["title"],
           duration: attr["duration"],
           track_number: attr["track_number"],
@@ -75,8 +75,8 @@ defmodule CrateStation.Ingest do
           is_favorite: attr["is_favorite"],
           last_played_at: parse_utc_datetime(attr["last_played_at"]),
           imported_at: parse_utc_datetime(attr["imported_at"]),
-          album_id: Map.get(album_id_by_client_id, attr["album_client_id"]),
-          artist_id: Map.get(artist_id_by_client_id, attr["artist_client_id"]),
+          album_id: Map.get(album_id_by_client_id, client_id(attr, "album_client_id")),
+          artist_id: Map.get(artist_id_by_client_id, client_id(attr, "artist_client_id")),
           user_id: scope.user.id,
           inserted_at: now,
           updated_at: now
@@ -114,7 +114,7 @@ defmodule CrateStation.Ingest do
     entries =
       Enum.map(attrs, fn attr ->
         %{
-          client_id: attr["client_id"],
+          client_id: client_id(attr, "client_id"),
           name: attr["name"],
           kind: String.to_atom(attr["kind"]),
           user_id: scope.user.id,
@@ -129,6 +129,42 @@ defmodule CrateStation.Ingest do
     )
   end
 
+  def replace_playlist_tracks(%Scope{} = scope, attrs) when is_list(attrs) do
+    now = DateTime.utc_now(:second)
+
+    playlist_id_by_client_id = client_id_to_playlist_id(attrs, scope)
+    track_id_by_client_id = client_id_to_track_id(attrs, scope)
+
+    Enum.each(attrs, fn attr ->
+      playlist_id = Map.fetch!(playlist_id_by_client_id, client_id(attr, "playlist_client_id"))
+
+      entries =
+        attr
+        |> Map.get("tracks", [])
+        |> Enum.map(fn track_attr ->
+          %{
+            user_id: scope.user.id,
+            playlist_id: playlist_id,
+            track_id: Map.fetch!(track_id_by_client_id, client_id(track_attr, "track_client_id")),
+            position: track_attr["position"],
+            inserted_at: now,
+            updated_at: now
+          }
+        end)
+
+      Repo.transaction(fn ->
+        from(pt in PlaylistTrack,
+          where: pt.user_id == ^scope.user.id and pt.playlist_id == ^playlist_id
+        )
+        |> Repo.delete_all()
+
+        if entries != [] do
+          Repo.insert_all(PlaylistTrack, entries)
+        end
+      end)
+    end)
+  end
+
   defp client_id_to_artist_id(attrs, scope) do
     attrs
     |> distinct_values("artist_client_id")
@@ -139,6 +175,37 @@ defmodule CrateStation.Ingest do
     attrs
     |> distinct_values("album_client_id")
     |> fetch_album_ids(scope)
+  end
+
+  defp client_id_to_playlist_id(attrs, scope) do
+    attrs
+    |> distinct_values("playlist_client_id")
+    |> fetch_playlists_ids(scope)
+  end
+
+  defp client_id_to_track_id(attrs, scope) do
+    attrs
+    |> Enum.flat_map(&Map.get(&1, "tracks", []))
+    |> distinct_values("track_client_id")
+    |> fetch_tracks_ids(scope)
+  end
+
+  defp fetch_playlists_ids(playlists_client_ids, scope) do
+    from(p in Playlist,
+      where: p.user_id == ^scope.user.id and p.client_id in ^playlists_client_ids,
+      select: {p.client_id, p.id}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  defp fetch_tracks_ids(tracks_client_ids, scope) do
+    from(t in Track,
+      where: t.user_id == ^scope.user.id and t.client_id in ^tracks_client_ids,
+      select: {t.client_id, t.id}
+    )
+    |> Repo.all()
+    |> Map.new()
   end
 
   defp fetch_artist_ids(albums_client_ids, scope) do
@@ -161,7 +228,7 @@ defmodule CrateStation.Ingest do
 
   defp distinct_values(attrs, key) do
     attrs
-    |> Enum.map(& &1[key])
+    |> Enum.map(&client_id(&1, key))
     |> Enum.reject(&is_nil/1)
     |> Enum.uniq()
   end
@@ -175,4 +242,21 @@ defmodule CrateStation.Ingest do
       {:error, _reason} -> datetime
     end
   end
+
+  defp client_id(attrs, key) do
+    attrs
+    |> Map.get(key)
+    |> normalize_client_id()
+  end
+
+  defp normalize_client_id(nil), do: nil
+
+  defp normalize_client_id(client_id) when is_binary(client_id) do
+    case Ecto.UUID.cast(client_id) do
+      {:ok, normalized_client_id} -> normalized_client_id
+      :error -> client_id
+    end
+  end
+
+  defp normalize_client_id(client_id), do: client_id
 end

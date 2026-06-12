@@ -24,4 +24,9 @@ defmodule CrateStationWeb.IngestController do
     {count, _} = Ingest.upsert_playlists(conn.assigns.current_scope, playlists)
     json(conn, %{count: count})
   end
+
+  def replace_playlist_tracks(conn, %{"playlist_tracks" => playlist_tracks}) do
+    Ingest.replace_playlist_tracks(conn.assigns.current_scope, playlist_tracks)
+    json(conn, %{})
+  end
 end
