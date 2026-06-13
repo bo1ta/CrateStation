@@ -126,15 +126,21 @@ defmodule CrateStation.Playback do
     )
   end
 
-  defp event_type(%{"event_type" => event_type}) when is_binary(event_type) do
-    String.to_existing_atom(event_type)
-  end
+  defp event_type(%{"event_type" => event_type}), do: cast_enum!(:event_type, event_type)
 
   defp context_type(attrs) when not is_map_key(attrs, "context_type"), do: nil
   defp context_type(%{"context_type" => nil}), do: nil
 
-  defp context_type(%{"context_type" => context_type}) when is_binary(context_type) do
-    String.to_existing_atom(context_type)
+  defp context_type(%{"context_type" => context_type}),
+    do: cast_enum!(:context_type, context_type)
+
+  defp cast_enum!(field, value) do
+    PlaybackEvent.__schema__(:type, field)
+    |> Ecto.Type.cast(value)
+    |> case do
+      {:ok, cast_value} -> cast_value
+      :error -> raise ArgumentError, "invalid #{field}: #{inspect(value)}"
+    end
   end
 
   defp client_id_to_track_id(attrs, scope) do
