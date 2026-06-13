@@ -4,9 +4,8 @@ defmodule CrateStationWeb.PlaybackController do
 
   action_fallback CrateStationWeb.FallbackController
 
-  def playback_event(conn, %{"event" => event}) do
-    with {:ok, _event} <- Playback.upsert_event(conn.assigns.current_scope, event) do
-      json(conn, %{})
-    end
+  def playback_events(conn, %{"events" => events}) do
+    {count, _} = Playback.upsert_events(conn.assigns.current_scope, events)
+    json(conn, %{count: count})
   end
 end

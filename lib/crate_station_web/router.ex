@@ -98,6 +98,6 @@ defmodule CrateStationWeb.Router do
     post "/sync/playlists/upsert", IngestController, :sync_playlists
     post "/sync/playlists/replace-tracks", IngestController, :replace_playlist_tracks
 
-    post "/playback/event", PlaybackController, :playback_event
+    post "/playback/events", PlaybackController, :playback_events
   end
 end

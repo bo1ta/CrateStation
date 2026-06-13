@@ -12,6 +12,7 @@ defmodule CrateStation.PlaybackFixtures do
 
     attrs =
       Enum.into(attrs, %{
+        client_id: Ecto.UUID.generate(),
         context_client_id: "7488a646-e31f-11e4-aace-600308960662",
         context_type: :library,
         duration_seconds: 42,

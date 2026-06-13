@@ -283,4 +283,17 @@ defmodule CrateStation.Playlists do
 
     PlaylistTrack.changeset(playlist_track, attrs, scope)
   end
+
+  def playlist_by_client_id(%Scope{} = scope, client_id) when is_binary(client_id) do
+    Repo.get_by(Playlist, user_id: scope.user.id, client_id: client_id)
+  end
+
+  def fetch_playlists_ids(playlists_client_ids, scope) do
+    from(p in Playlist,
+      where: p.user_id == ^scope.user.id and p.client_id in ^playlists_client_ids,
+      select: {p.client_id, p.id}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
 end

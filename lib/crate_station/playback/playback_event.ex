@@ -3,6 +3,7 @@ defmodule CrateStation.Playback.PlaybackEvent do
   import Ecto.Changeset
 
   @type t :: %__MODULE__{
+          client_id: Ecto.UUID.t(),
           event_type: :started | :scrobbled | :skipped | :finished,
           played_at: DateTime.t(),
           position_seconds: integer() | nil,
@@ -18,6 +19,7 @@ defmodule CrateStation.Playback.PlaybackEvent do
         }
 
   schema "playback_events" do
+    field :client_id, Ecto.UUID
     field :event_type, Ecto.Enum, values: [:started, :scrobbled, :skipped, :finished]
     field :played_at, :utc_datetime
     field :position_seconds, :integer
@@ -35,6 +37,7 @@ defmodule CrateStation.Playback.PlaybackEvent do
   def changeset(playback_event, attrs, user_scope) do
     playback_event
     |> cast(attrs, [
+      :client_id,
       :event_type,
       :played_at,
       :position_seconds,
@@ -45,10 +48,10 @@ defmodule CrateStation.Playback.PlaybackEvent do
     ])
     |> validate_required([
       :event_type,
+      :client_id,
       :played_at,
       :position_seconds,
       :duration_seconds,
-      :context_type,
       :track_id
     ])
     |> put_change(:user_id, user_scope.user.id)

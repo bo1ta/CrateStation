@@ -432,4 +432,35 @@ defmodule CrateStation.Music do
 
     Track.changeset(track, attrs, scope)
   end
+
+  def fetch_tracks_ids(tracks_client_ids, scope) do
+    from(t in Track,
+      where: t.user_id == ^scope.user.id and t.client_id in ^tracks_client_ids,
+      select: {t.client_id, t.id}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  def fetch_artist_ids(albums_client_ids, scope) do
+    from(a in Artist,
+      where: a.user_id == ^scope.user.id and a.client_id in ^albums_client_ids,
+      select: {a.client_id, a.id}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  def fetch_album_ids(artist_client_ids, scope) do
+    from(a in Album,
+      where: a.user_id == ^scope.user.id and a.client_id in ^artist_client_ids,
+      select: {a.client_id, a.id}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  def album_by_client_id(%Scope{} = scope, client_id) do
+    Repo.get_by(Album, user_id: scope.user.id, client_id: client_id)
+  end
 end

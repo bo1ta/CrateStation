@@ -4,8 +4,9 @@ defmodule CrateStation.Playback do
   """
 
   import Ecto.Query, warn: false
+  import CrateStation.Helpers.ClientHelpers
+
   alias CrateStation.Music
-  alias CrateStation.Music.Track
   alias CrateStation.Repo
 
   alias CrateStation.Playback.PlaybackEvent
@@ -86,20 +87,60 @@ defmodule CrateStation.Playback do
     end
   end
 
-  def upsert_event(%Scope{} = scope, attrs) do
-    case Music.track_by_client_id(scope, attrs["track_client_id"]) do
-      %Track{id: track_id} ->
-        # TODO: Handle context_client_id once Playlists is in place
-        attrs =
-          attrs
-          |> Map.delete("track_client_id")
-          |> Map.put("track_id", track_id)
+  def upsert_events(%Scope{} = scope, attrs) do
+    now = DateTime.utc_now(:second)
 
-        create_playback_event(scope, attrs)
+    track_id_by_client_id = client_id_to_track_id(attrs, scope)
 
-      nil ->
-        {:error, :unprocessable_entity}
-    end
+    entries =
+      Enum.map(attrs, fn attr ->
+        %{
+          user_id: scope.user.id,
+          client_id: client_id(attr, "client_event_id"),
+          event_type: event_type(attr),
+          played_at: parse_utc_datetime(attr["played_at"]),
+          position_seconds: attr["position_seconds"],
+          duration_seconds: attr["duration_seconds"],
+          context_type: context_type(attr),
+          context_client_id: client_id(attr, "context_client_id"),
+          track_id: Map.get(track_id_by_client_id, client_id(attr, "track_client_id")),
+          inserted_at: now,
+          updated_at: now
+        }
+      end)
+
+    Repo.insert_all(PlaybackEvent, entries,
+      conflict_target: [:user_id, :client_id],
+      on_conflict:
+        {:replace,
+         [
+           :event_type,
+           :played_at,
+           :position_seconds,
+           :duration_seconds,
+           :context_type,
+           :context_client_id,
+           :track_id,
+           :updated_at
+         ]}
+    )
+  end
+
+  defp event_type(%{"event_type" => event_type}) when is_binary(event_type) do
+    String.to_existing_atom(event_type)
+  end
+
+  defp context_type(attrs) when not is_map_key(attrs, "context_type"), do: nil
+  defp context_type(%{"context_type" => nil}), do: nil
+
+  defp context_type(%{"context_type" => context_type}) when is_binary(context_type) do
+    String.to_existing_atom(context_type)
+  end
+
+  defp client_id_to_track_id(attrs, scope) do
+    attrs
+    |> distinct_values("track_client_id")
+    |> Music.fetch_tracks_ids(scope)
   end
 
   @doc """

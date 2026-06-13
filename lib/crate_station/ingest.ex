@@ -1,5 +1,9 @@
 defmodule CrateStation.Ingest do
   import Ecto.Query, warn: false
+  import CrateStation.Helpers.ClientHelpers
+
+  alias CrateStation.Playlists
+  alias CrateStation.Music
   alias CrateStation.Repo
 
   alias CrateStation.Accounts.Scope
@@ -168,95 +172,25 @@ defmodule CrateStation.Ingest do
   defp client_id_to_artist_id(attrs, scope) do
     attrs
     |> distinct_values("artist_client_id")
-    |> fetch_artist_ids(scope)
+    |> Music.fetch_artist_ids(scope)
   end
 
   defp client_id_to_album_id(attrs, scope) do
     attrs
     |> distinct_values("album_client_id")
-    |> fetch_album_ids(scope)
+    |> Music.fetch_album_ids(scope)
   end
 
   defp client_id_to_playlist_id(attrs, scope) do
     attrs
     |> distinct_values("playlist_client_id")
-    |> fetch_playlists_ids(scope)
+    |> Playlists.fetch_playlists_ids(scope)
   end
 
   defp client_id_to_track_id(attrs, scope) do
     attrs
     |> Enum.flat_map(&Map.get(&1, "tracks", []))
     |> distinct_values("track_client_id")
-    |> fetch_tracks_ids(scope)
+    |> Music.fetch_tracks_ids(scope)
   end
-
-  defp fetch_playlists_ids(playlists_client_ids, scope) do
-    from(p in Playlist,
-      where: p.user_id == ^scope.user.id and p.client_id in ^playlists_client_ids,
-      select: {p.client_id, p.id}
-    )
-    |> Repo.all()
-    |> Map.new()
-  end
-
-  defp fetch_tracks_ids(tracks_client_ids, scope) do
-    from(t in Track,
-      where: t.user_id == ^scope.user.id and t.client_id in ^tracks_client_ids,
-      select: {t.client_id, t.id}
-    )
-    |> Repo.all()
-    |> Map.new()
-  end
-
-  defp fetch_artist_ids(albums_client_ids, scope) do
-    from(a in Artist,
-      where: a.user_id == ^scope.user.id and a.client_id in ^albums_client_ids,
-      select: {a.client_id, a.id}
-    )
-    |> Repo.all()
-    |> Map.new()
-  end
-
-  defp fetch_album_ids(artist_client_ids, scope) do
-    from(a in Album,
-      where: a.user_id == ^scope.user.id and a.client_id in ^artist_client_ids,
-      select: {a.client_id, a.id}
-    )
-    |> Repo.all()
-    |> Map.new()
-  end
-
-  defp distinct_values(attrs, key) do
-    attrs
-    |> Enum.map(&client_id(&1, key))
-    |> Enum.reject(&is_nil/1)
-    |> Enum.uniq()
-  end
-
-  defp parse_utc_datetime(nil), do: nil
-  defp parse_utc_datetime(%DateTime{} = datetime), do: DateTime.truncate(datetime, :second)
-
-  defp parse_utc_datetime(datetime) when is_binary(datetime) do
-    case DateTime.from_iso8601(datetime) do
-      {:ok, datetime, _offset} -> DateTime.truncate(datetime, :second)
-      {:error, _reason} -> datetime
-    end
-  end
-
-  defp client_id(attrs, key) do
-    attrs
-    |> Map.get(key)
-    |> normalize_client_id()
-  end
-
-  defp normalize_client_id(nil), do: nil
-
-  defp normalize_client_id(client_id) when is_binary(client_id) do
-    case Ecto.UUID.cast(client_id) do
-      {:ok, normalized_client_id} -> normalized_client_id
-      :error -> client_id
-    end
-  end
-
-  defp normalize_client_id(client_id), do: client_id
 end
