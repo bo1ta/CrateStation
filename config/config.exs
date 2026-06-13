@@ -24,6 +24,9 @@ config :crate_station,
   ecto_repos: [CrateStation.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+config :ex_disco, ExDisco,
+  user_agent: "CrateStation/1.0.0 (+https://github.com/bo1ta/CrateStation)"
+
 # Configure the endpoint
 config :crate_station, CrateStationWeb.Endpoint,
   url: [host: "localhost"],
