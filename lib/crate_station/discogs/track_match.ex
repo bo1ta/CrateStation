@@ -33,8 +33,15 @@ defmodule CrateStation.Discogs.TrackMatch do
 
   @doc false
   def changeset(track_match, attrs, user_scope) do
+    attrs = Map.put(attrs, :user_id, user_scope.user.id)
+
+    changeset(track_match, attrs)
+  end
+
+  def changeset(track_match, attrs) do
     track_match
     |> cast(attrs, [
+      :user_id,
       :track_id,
       :status,
       :discogs_release_id,
@@ -51,7 +58,6 @@ defmodule CrateStation.Discogs.TrackMatch do
       :attempt_count,
       :last_error
     ])
-    |> put_change(:user_id, user_scope.user.id)
     |> validate_required([
       :track_id,
       :status,

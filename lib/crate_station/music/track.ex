@@ -48,6 +48,8 @@ defmodule CrateStation.Music.Track do
     belongs_to :album, CrateStation.Music.Album
     belongs_to :artist, CrateStation.Music.Artist
 
+    has_one :discogs_track_match, CrateStation.Discogs.TrackMatch
+
     timestamps(type: :utc_datetime)
   end
 

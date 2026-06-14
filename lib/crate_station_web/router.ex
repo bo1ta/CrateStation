@@ -92,12 +92,11 @@ defmodule CrateStationWeb.Router do
 
     get "/auth/me", AuthController, :me
 
-    post "/sync/artists/upsert", IngestController, :sync_artists
-    post "/sync/albums/upsert", IngestController, :sync_albums
-    post "/sync/tracks/upsert", IngestController, :sync_tracks
-    post "/sync/playlists/upsert", IngestController, :sync_playlists
-    post "/sync/playlists/replace-tracks", IngestController, :replace_playlist_tracks
-
-    post "/playback/events", PlaybackController, :playback_events
+    post "/sync/artists/upsert", SyncController, :sync_artists
+    post "/sync/albums/upsert", SyncController, :sync_albums
+    post "/sync/tracks/upsert", SyncController, :sync_tracks
+    post "/sync/playlists/upsert", SyncController, :sync_playlists
+    post "/sync/playlists/replace-tracks", SyncController, :replace_playlist_tracks
+    post "/sync/events/upsert", SyncController, :sync_events
   end
 end

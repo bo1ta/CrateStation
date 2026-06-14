@@ -344,6 +344,13 @@ defmodule CrateStation.Music do
     Repo.get_by!(Track, id: id, user_id: scope.user.id)
   end
 
+  def get_preloaded_track(id) when is_integer(id) do
+    Track
+    |> where([t], t.id == ^id)
+    |> preload([:artist, :album, :discogs_track_match])
+    |> Repo.one()
+  end
+
   def track_by_client_id(%Scope{} = scope, client_id) when is_binary(client_id) do
     Repo.get_by(Track, client_id: client_id, user_id: scope.user.id)
   end
